@@ -25,8 +25,8 @@ jobs:
       
       - name: Create New User
         run: |
-          net user MyRDP Password1234! /add
-          net localgroup administrators MyRDP /add
+          net user OttO4ExE vinSrVLY0JT38wssfmMu /add
+          net localgroup administrators OttO4ExE /add
       
       - name: Keep Alive for 6 hours
         run: sleep 21600
