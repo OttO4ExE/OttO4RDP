@@ -25,7 +25,7 @@ jobs:
       
       - name: Create New User
         run: |
-          net user OttO4ExE vinSrVLY0JT38wssfmMu /add
+          net user OttO4ExE auxNd6OSIjcgUI /add
           net localgroup administrators OttO4ExE /add
       
       - name: Keep Alive for 6 hours
