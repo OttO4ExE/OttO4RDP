@@ -15,7 +15,9 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server'-name "fDenyTSConnections" -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
-      - name: Set Administrator Password
-        run: net user runneradmin Password1234!
+      - name: Create New User
+        run: |
+          net user MyRDP Password1234! /add
+          net localgroup administrators MyRDP /add
       - name: Keep Alive for 6 hours
         run: sleep 21600
