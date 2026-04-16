@@ -19,7 +19,8 @@ $urbanInstaller = "$env:TEMP\UrbanVPN.exe"
 Invoke-WebRequest -Uri $urbanUrl -OutFile $urbanInstaller
 
 Write-Host "Installing Urban VPN silently..."
-Start-Process -FilePath $urbanInstaller -ArgumentList "/S" -Wait
-Remove-Item -Path $urbanInstaller -Force
+Start-Process -FilePath $urbanInstaller -ArgumentList "/S"
+Start-Sleep -Seconds 20
+Remove-Item -Path $urbanInstaller -Force -ErrorAction SilentlyContinue
 
 Write-Host "All tasks completed successfully! Ready for automation."
