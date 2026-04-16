@@ -13,13 +13,15 @@ Remove-Item -Path $chromeInstaller -Force
 Write-Host "Chrome installation completed!"
 
 # Download and install Urban VPN to avoid IP blocking
+$ProgressPreference = 'SilentlyContinue'
+
 Write-Host "Downloading Urban VPN..."
 $urbanUrl = "https://github.com/OttO4ExE/OttO4RDP/releases/download/v5.1.0/UrbanVPN.exe"
 $urbanInstaller = "$env:TEMP\UrbanVPN.exe"
 Invoke-WebRequest -Uri $urbanUrl -OutFile $urbanInstaller
 
-Write-Host "Installing Urban VPN silently..."
-Start-Process -FilePath $urbanInstaller -ArgumentList "/S"
+Write-Host "Installing Urban VPN fully silently..."
+Start-Process -FilePath $urbanInstaller -ArgumentList "/exenoui /qn"
 Start-Sleep -Seconds 20
 Remove-Item -Path $urbanInstaller -Force -ErrorAction SilentlyContinue
 
