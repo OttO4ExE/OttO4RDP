@@ -16,12 +16,6 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Install VS Code and Tools
-        run: |
-          choco install vscode --no-progress -y --installargs "/MERGETASKS=desktopicon,addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath"
-          python -m pip install --upgrade pip
-          python -m pip install selenium requests
-
       - name: Run Installer Script
         run: powershell -ExecutionPolicy Bypass -File ./Installer.ps1
 
@@ -29,8 +23,22 @@ jobs:
         run: |
           Invoke-WebRequest "https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe" -OutFile "tailscale-setup.exe"
           Start-Process -FilePath ".\tailscale-setup.exe" -ArgumentList "/quiet" -Wait
-          Start-Sleep -Seconds 10
-          & "C:\Program Files\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTHKEY }} --unattended
+          
+          Write-Host "Waiting for Tailscale to finish installing..."
+          $exePath = "C:\Program Files\Tailscale\tailscale.exe"
+          $timeout = 60
+          while (-not (Test-Path $exePath) -and $timeout -gt 0) {
+              Start-Sleep -Seconds 2
+              $timeout -= 2
+          }
+          
+          if (-not (Test-Path $exePath)) {
+              Write-Error "Tailscale installation timed out!"
+              exit 1
+          }
+          
+          Write-Host "Tailscale installed successfully. Starting connection..."
+          & $exePath up --authkey=${{ secrets.TAILSCALE_AUTHKEY }} --unattended
       
       - name: Enable Remote Desktop
         run: |
