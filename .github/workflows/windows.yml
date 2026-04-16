@@ -11,34 +11,19 @@ jobs:
       - name: Clean GitHub Pre-installed WebDrivers
         run: Remove-Item -Path "C:\SeleniumWebDrivers" -Recurse -Force -ErrorAction SilentlyContinue
 
-      - name: Set up Python 3.13
+      - name: Set up Python 3.13.3
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.13.3'
 
       - name: Run Installer Script
         run: powershell -ExecutionPolicy Bypass -File ./Installer.ps1
 
-      - name: Install and Run Tailscale
-        run: |
-          Invoke-WebRequest "https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe" -OutFile "tailscale-setup.exe"
-          Start-Process -FilePath ".\tailscale-setup.exe" -ArgumentList "/quiet" -Wait
-          
-          Write-Host "Waiting for Tailscale to finish installing..."
-          $exePath = "C:\Program Files\Tailscale\tailscale.exe"
-          $timeout = 60
-          while (-not (Test-Path $exePath) -and $timeout -gt 0) {
-              Start-Sleep -Seconds 2
-              $timeout -= 2
-          }
-          
-          if (-not (Test-Path $exePath)) {
-              Write-Error "Tailscale installation timed out!"
-              exit 1
-          }
-          
-          Write-Host "Tailscale installed successfully. Starting connection..."
-          & $exePath up --authkey=${{ secrets.TAILSCALE_AUTHKEY }} --unattended
+      # Official tool to install "Tailscale" 
+      - name: Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
       
       - name: Enable Remote Desktop
         run: |
