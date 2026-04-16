@@ -6,50 +6,70 @@ jobs:
     runs-on: windows-latest
 
     steps:
+      # Checkout repository files
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # Remove pre-installed Selenium WebDrivers to avoid conflicts
       - name: Clean GitHub Pre-installed WebDrivers
         run: Remove-Item -Path "C:\SeleniumWebDrivers" -Recurse -Force -ErrorAction SilentlyContinue
 
+      # Install Python 3.13.3
       - name: Set up Python 3.13.3
         uses: actions/setup-python@v5
         with:
           python-version: '3.13.3'
 
+      # Run your custom installer script
       - name: Run Installer Script
         run: powershell -ExecutionPolicy Bypass -File ./Installer.ps1
 
-      # -----------------------------------------
-      # FIXED: Install Tailscale on Windows
-      # -----------------------------------------
+      # ------------------------------------------------
+      # Install Tailscale on Windows (Manual method)
+      # ------------------------------------------------
+
+      # Download the Tailscale Windows installer
       - name: Download Tailscale Installer
         run: |
           Invoke-WebRequest https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe -OutFile ts.exe
 
+      # Install Tailscale silently
       - name: Install Tailscale
         run: |
           Start-Process .\ts.exe /S -Wait
 
+      # Verify that Tailscale was installed correctly
+      - name: Verify Tailscale Installation
+        run: |
+          Get-ChildItem "C:\Program Files\Tailscale"
+
+      # Authenticate Tailscale using the full path (PATH does not refresh on Windows runners)
       - name: Authenticate Tailscale
         env:
           TS_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
         run: |
-          tailscale up --authkey "$env:TS_AUTHKEY"
+          "C:\Program Files\Tailscale\tailscale.exe" up --authkey "$env:TS_AUTHKEY"
 
-      # -----------------------------------------
-      # RDP Setup
-      # -----------------------------------------
+      # Display the Tailscale IP to confirm successful connection
+      - name: Show Tailscale IP
+        run: |
+          "C:\Program Files\Tailscale\tailscale.exe" ip
+
+      # ------------------------------------------------
+      # Enable Remote Desktop (RDP)
+      # ------------------------------------------------
       - name: Enable Remote Desktop
         run: |
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
 
+      # Create a new admin user for RDP login
       - name: Create New User
         run: |
           net user OttO4ExE auxNd6OSIjcgUI /add
           net localgroup administrators OttO4ExE /add
 
+      # Keep the runner alive for 6 hours
       - name: Keep Alive for 6 hours
         run: sleep 21600
