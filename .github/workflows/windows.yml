@@ -10,11 +10,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Install Python (if you need it)
-      - name: Set up Python 3.13.3
+      # Install Python
+      - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13.3'
+          python-version: '3.13'
 
       # Run your custom installer
       - name: Run Installer Script
