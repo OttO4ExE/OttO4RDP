@@ -12,7 +12,7 @@ Start-Process -FilePath $chromeInstaller -ArgumentList "/silent /install" -Wait
 Remove-Item -Path $chromeInstaller -Force
 Write-Host "Chrome installation completed!"
 
-Download and install Urban VPN to avoid IP blocking
+# Download and install Urban VPN to avoid IP blocking
 Write-Host "Downloading Urban VPN..."
 $urbanUrl = "https://github.com/OttO4ExE/OttO4RDP/releases/download/v5.1.0/UrbanVPN.exe"
 $urbanInstaller = "$env:TEMP\UrbanVPN.exe"
