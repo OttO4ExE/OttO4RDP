@@ -1,4 +1,4 @@
-name: Windows_RDP_Tailscale
+name: Windows_RDP_Tailscale_Debug
 on: workflow_dispatch
 
 jobs:
@@ -10,28 +10,90 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Run the installer
+      # Install Python (if you need it)
+      - name: Set up Python 3.13.3
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.3'
+
+      # Run your custom installer
       - name: Run Installer Script
         run: powershell -ExecutionPolicy Bypass -File ./Installer.ps1
 
-      # ------------------------------------------------
-      # Install and run Tailscale
-      # ------------------------------------------------
-      - name: Install and Run Tailscale
+      # -------------------------
+      # EXE install with debug
+      # -------------------------
+      - name: Download Tailscale EXE
         run: |
           Invoke-WebRequest "https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe" -OutFile "tailscale-setup.exe"
-          
-          # Install silently
-          Start-Process -FilePath ".\tailscale-setup.exe" -ArgumentList "/quiet" -Wait
-          
-          # Give Windows time to extract files
-          Start-Sleep -Seconds 10
-          
-          # Authenticate using full path + PowerShell call operator
-          & "C:\Program Files\Tailscale\tailscale.exe" up --authkey="${{ secrets.TAILSCALE_AUTHKEY }}" --unattended
+
+      - name: Install Tailscale EXE (with exit code check)
+        run: |
+          $p = Start-Process -FilePath ".\tailscale-setup.exe" -ArgumentList "/quiet" -Wait -PassThru
+          Write-Host "Installer ExitCode: $($p.ExitCode)"
+          if ($p.ExitCode -ne 0) { Write-Host "EXE installer returned non-zero exit code"; exit $p.ExitCode }
+
+      - name: Wait and list possible install locations
+        run: |
+          Start-Sleep -Seconds 12
+          Write-Host "Check Program Files (x64):"
+          if (Test-Path "C:\Program Files\Tailscale") { Get-ChildItem "C:\Program Files\Tailscale" | Write-Host } else { Write-Host "Not found in C:\Program Files\Tailscale" }
+          Write-Host "Check Program Files (x86):"
+          if (Test-Path "C:\Program Files (x86)\Tailscale") { Get-ChildItem "C:\Program Files (x86)\Tailscale" | Write-Host } else { Write-Host "Not found in C:\Program Files (x86)\Tailscale" }
+          Write-Host "Where.exe check:"
+          where.exe tailscale || Write-Host "where.exe did not find tailscale"
+
+      - name: Try authenticate using full path if exists
+        env:
+          TS_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+        run: |
+          if (Test-Path "C:\Program Files\Tailscale\tailscale.exe") {
+            Write-Host "Using x64 path"
+            & "C:\Program Files\Tailscale\tailscale.exe" up --authkey="$env:TS_AUTHKEY" --unattended
+          } elseif (Test-Path "C:\Program Files (x86)\Tailscale\tailscale.exe") {
+            Write-Host "Using x86 path"
+            & "C:\Program Files (x86)\Tailscale\tailscale.exe" up --authkey="$env:TS_AUTHKEY" --unattended
+          } else {
+            Write-Host "Tailscale executable not found in expected locations. Will fail here to trigger fallback."
+            exit 2
+          }
+
+      - name: Show Tailscale IP (if up succeeded)
+        run: |
+          if (Test-Path "C:\Program Files\Tailscale\tailscale.exe") {
+            & "C:\Program Files\Tailscale\tailscale.exe" ip
+          } elseif (Test-Path "C:\Program Files (x86)\Tailscale\tailscale.exe") {
+            & "C:\Program Files (x86)\Tailscale\tailscale.exe" ip
+          } else {
+            Write-Host "No tailscale.exe to show IP"
+          }
+
+      # -------------------------
+      # Fallback: MSI install (if EXE failed)
+      # -------------------------
+      - name: Download Tailscale MSI (fallback)
+        if: failure()
+        run: |
+          Write-Host "EXE path failed — attempting MSI fallback"
+          Invoke-WebRequest https://pkgs.tailscale.com/stable/tailscale-setup-latest.msi -OutFile ts.msi
+
+      - name: Install Tailscale MSI (fallback)
+        if: failure()
+        run: |
+          msiexec /i ts.msi /qn /norestart
+          Start-Sleep -Seconds 8
+          if (-not (Test-Path "C:\Program Files\Tailscale\tailscale.exe")) { Write-Host "MSI did not create expected path"; exit 3 }
+
+      - name: Authenticate Tailscale after MSI (fallback)
+        if: failure()
+        env:
+          TS_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+        run: |
+          & "C:\Program Files\Tailscale\tailscale.exe" up --authkey="$env:TS_AUTHKEY" --unattended
+          & "C:\Program Files\Tailscale\tailscale.exe" ip
 
       # ------------------------------------------------
-      # Enable RDP
+      # Enable RDP and create user
       # ------------------------------------------------
       - name: Enable Remote Desktop
         run: |
@@ -39,12 +101,10 @@ jobs:
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
 
-      # Create RDP user
       - name: Create New User
         run: |
           net user OttO4ExE auxNd6OSIjcgUI /add
           net localgroup administrators OttO4ExE /add
 
-      # Keep alive
       - name: Keep Alive for 6 hours
         run: sleep 21600
