@@ -1,11 +1,26 @@
-name: Windows_RDP_Tailscale
+name: Windows_RDP_OttO
 on: workflow_dispatch
+
 jobs:
   build:
     runs-on: windows-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Clean GitHub Pre-installed WebDrivers
+        run: Remove-Item -Path "C:\SeleniumWebDrivers" -Recurse -Force -ErrorAction SilentlyContinue
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install VS Code and Tools
+        run: |
+          choco install vscode --no-progress -y --installargs "/MERGETASKS=desktopicon,addcontextmenufiles,addcontextmenufolders,associatewithfiles,addtopath"
+          python -m pip install --upgrade pip
+          python -m pip install selenium requests
 
       - name: Run Installer Script
         run: powershell -ExecutionPolicy Bypass -File ./Installer.ps1
