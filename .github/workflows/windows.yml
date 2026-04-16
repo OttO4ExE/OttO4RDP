@@ -4,6 +4,7 @@ on: workflow_dispatch
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -19,22 +20,36 @@ jobs:
       - name: Run Installer Script
         run: powershell -ExecutionPolicy Bypass -File ./Installer.ps1
 
-      # Official tool to install "Tailscale" 
-      - name: Tailscale
-        uses: tailscale/github-action@v2
-        with:
-          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
-      
+      # -----------------------------------------
+      # FIXED: Install Tailscale on Windows
+      # -----------------------------------------
+      - name: Download Tailscale Installer
+        run: |
+          Invoke-WebRequest https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe -OutFile ts.exe
+
+      - name: Install Tailscale
+        run: |
+          Start-Process .\ts.exe /S -Wait
+
+      - name: Authenticate Tailscale
+        env:
+          TS_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+        run: |
+          tailscale up --authkey "$env:TS_AUTHKEY"
+
+      # -----------------------------------------
+      # RDP Setup
+      # -----------------------------------------
       - name: Enable Remote Desktop
         run: |
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server'-name "fDenyTSConnections" -Value 0
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -name "fDenyTSConnections" -Value 0
           Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
-      
+
       - name: Create New User
         run: |
           net user OttO4ExE auxNd6OSIjcgUI /add
           net localgroup administrators OttO4ExE /add
-      
+
       - name: Keep Alive for 6 hours
         run: sleep 21600
