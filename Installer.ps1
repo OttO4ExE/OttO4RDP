@@ -12,17 +12,10 @@ Start-Process -FilePath $chromeInstaller -ArgumentList "/silent /install" -Wait
 Remove-Item -Path $chromeInstaller -Force
 Write-Host "Chrome installation completed!"
 
-# Download and install Urban VPN to avoid IP blocking
-$ProgressPreference = 'SilentlyContinue'
-
-Write-Host "Downloading Urban VPN..."
-$urbanUrl = "https://github.com/OttO4ExE/OttO4RDP/releases/download/v5.1.0/UrbanVPN.exe"
-$urbanInstaller = "$env:TEMP\UrbanVPN.exe"
-Invoke-WebRequest -Uri $urbanUrl -OutFile $urbanInstaller
-
-Write-Host "Installing Urban VPN fully silently..."
-Start-Process -FilePath $urbanInstaller -ArgumentList "/exenoui /qn"
-Start-Sleep -Seconds 20
-Remove-Item -Path $urbanInstaller -Force -ErrorAction SilentlyContinue
+# Install Selenium via python -m pip to ensure it attaches to the active Python version
+Write-Host "Upgrading pip and installing Selenium..."
+python -m pip install --upgrade pip
+python -m pip install selenium
+Write-Host "Selenium and WebDriver preparation completed!"
 
 Write-Host "All tasks completed successfully! Ready for automation."
