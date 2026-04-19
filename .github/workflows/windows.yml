@@ -7,11 +7,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.13 as Default
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-
       - name: Run Installer Script
         run: powershell -ExecutionPolicy Bypass -File ./Installer.ps1
 
@@ -21,6 +16,18 @@ jobs:
           Start-Process -FilePath ".\tailscale-setup.exe" -ArgumentList "/quiet" -Wait
           Start-Sleep -Seconds 10
           & "C:\Program Files\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTHKEY }} --unattended
+
+      - name: Disable Windows Annoyances (Updates & Logoff Limits)
+        run: |
+          # 1. Kill and Disable Windows Update Service
+          Stop-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
+          Set-Service -Name wuauserv -StartupType Disabled
+          
+          # 2. Prevent Windows from forcing logoff on active or disconnected sessions
+          $regPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services"
+          if (-not (Test-Path $regPath)) { New-Item -Path $regPath -Force | Out-Null }
+          Set-ItemProperty -Path $regPath -Name "MaxDisconnectionTime" -Value 0
+          Set-ItemProperty -Path $regPath -Name "MaxIdleTime" -Value 0
       
       - name: Enable Remote Desktop
         run: |
@@ -33,5 +40,13 @@ jobs:
           net user OttO4ExE auxNd6OSIjcgUI /add
           net localgroup administrators OttO4ExE /add
       
-      - name: Keep Alive for 6 hours
-        run: sleep 21600
+      - name: Keep Alive (Heartbeat)
+        run: |
+          $totalSeconds = 21600
+          $interval = 300
+          $elapsed = 0
+          while ($elapsed -lt $totalSeconds) {
+              Write-Output "Workflow active: Server heartbeat pulse at $elapsed seconds..."
+              Start-Sleep -Seconds $interval
+              $elapsed += $interval
+          }
