@@ -12,10 +12,4 @@ Start-Process -FilePath $chromeInstaller -ArgumentList "/silent /install" -Wait
 Remove-Item -Path $chromeInstaller -Force
 Write-Host "Chrome installation completed!"
 
-# Install Selenium via python -m pip to ensure it attaches to the active Python version
-Write-Host "Upgrading pip and installing Selenium..."
-python -m pip install --upgrade pip
-python -m pip install selenium
-Write-Host "Selenium and WebDriver preparation completed!"
-
 Write-Host "All tasks completed successfully! Ready for automation."
